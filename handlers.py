@@ -4,7 +4,6 @@ import random
 
 router = Router()
 
-# كيبورد الأزرار بنفس ترتيب الصورة
 def get_game_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -14,14 +13,12 @@ def get_game_buttons():
         ]
     ])
 
-# 1. الاستعلام المضمن عند كتابة @اسم_البوت
 @router.inline_query()
 async def inline_game(inline_query: InlineQuery):
     results = [
         InlineQueryResultArticle(
             id="game_board",
             title="لعبة حجرة ورقة مقص",
-            description="اضغط للبدء واللعب مع صديقك",
             input_message_content=InputTextMessageContent(
                 message_text="حجرة ورقة مقص ✂️\nاضغط للعب مع ( ) 👤"
             ),
@@ -30,9 +27,11 @@ async def inline_game(inline_query: InlineQuery):
     ]
     await inline_query.answer(results, cache_time=1)
 
-# 2. منطق اللعب عند الضغط على الأزرار
 @router.callback_query(F.data.in_(["rock", "paper", "scissors"]))
 async def callback_handler(callback: CallbackQuery):
+    # إرسال رد فوري لتليجرام لإنهاء حالة التحميل
+    await callback.answer()
+    
     player_choice = callback.data
     bot_choice = random.choice(["rock", "paper", "scissors"])
     
@@ -46,9 +45,12 @@ async def callback_handler(callback: CallbackQuery):
     else:
         result = "لقد فزتُ أنا! 🤖"
 
-    # تحديث الرسالة بالنتيجة النهائية
-    await callback.message.edit_text(
-        f"اختيارك: {player_choice}\n"
-        f"اختيار البوت: {bot_choice}\n\n"
-        f"النتيجة: {result}"
-    )
+    # استخدام try/except لتجنب توقف البوت في حال فشل التعديل
+    try:
+        await callback.message.edit_text(
+            f"اختيارك: {player_choice}\n"
+            f"اختيار البوت: {bot_choice}\n\n"
+            f"النتيجة: {result}"
+        )
+    except Exception as e:
+        print(f"خطأ في التعديل: {e}")
