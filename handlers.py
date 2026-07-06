@@ -1,40 +1,40 @@
 from aiogram import Router, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 import random
 
 router = Router()
 
-# دالة الأزرار للعب المباشر
+# كيبورد الأزرار بنفس ترتيب الصورة
 def get_game_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🪨 حجرة", callback_data="rock"),
-            InlineKeyboardButton(text="📄 ورقة", callback_data="paper"),
-            InlineKeyboardButton(text="✂️ مقص", callback_data="scissors")
+            InlineKeyboardButton(text="مقص ✂️", callback_data="scissors"),
+            InlineKeyboardButton(text="ورق 📄", callback_data="paper"),
+            InlineKeyboardButton(text="حجره 🪨", callback_data="rock")
         ]
     ])
 
-# 1. الاستعلام المضمن (تظهر عند كتابة @اسم_البوت)
+# 1. الاستعلام المضمن عند كتابة @اسم_البوت
 @router.inline_query()
 async def inline_game(inline_query: InlineQuery):
     results = [
         InlineQueryResultArticle(
-            id="game",
-            title="لعبة حجرة ورقة مقص 🎮",
-            description="اضغط للعب مع صديقك",
-            input_message_content=InputTextMessageContent(message_text="لعبة جديدة! اختر حركتك الآن:"),
+            id="game_board",
+            title="لعبة حجرة ورقة مقص",
+            description="اضغط للبدء واللعب مع صديقك",
+            input_message_content=InputTextMessageContent(
+                message_text="حجرة ورقة مقص ✂️\nاضغط للعب مع ( ) 👤"
+            ),
             reply_markup=get_game_buttons()
         )
     ]
     await inline_query.answer(results, cache_time=1)
 
-# 2. التعامل مع ضغطات الأزرار
+# 2. منطق اللعب عند الضغط على الأزرار
 @router.callback_query(F.data.in_(["rock", "paper", "scissors"]))
-async def handle_buttons(callback: CallbackQuery):
+async def callback_handler(callback: CallbackQuery):
     player_choice = callback.data
-    options = ["rock", "paper", "scissors"]
-    # اختيار عشوائي للخصم (البوت)
-    bot_choice = random.choice(options)
+    bot_choice = random.choice(["rock", "paper", "scissors"])
     
     # تحديد النتيجة
     if player_choice == bot_choice:
@@ -44,12 +44,11 @@ async def handle_buttons(callback: CallbackQuery):
          (player_choice == "scissors" and bot_choice == "paper"):
         result = "أنت الفائز! 🎉"
     else:
-        result = "للأسف، خسرت هذه الجولة! 🤖"
+        result = "لقد فزتُ أنا! 🤖"
 
-    # تحديث الرسالة بالنتيجة
-    text = (f"النتيجة:\n"
-            f"اختيارك: {player_choice}\n"
-            f"اختيار الخصم: {bot_choice}\n\n"
-            f"{result}")
-    
-    await callback.message.edit_text(text)
+    # تحديث الرسالة بالنتيجة النهائية
+    await callback.message.edit_text(
+        f"اختيارك: {player_choice}\n"
+        f"اختيار البوت: {bot_choice}\n\n"
+        f"النتيجة: {result}"
+    )
