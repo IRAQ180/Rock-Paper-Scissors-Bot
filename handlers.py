@@ -1,53 +1,46 @@
 from aiogram import Router, F
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
-import random
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
 router = Router()
 
-# دالة الأزرار
-def get_game_buttons():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="مقص ✂️", callback_data="scissors"),
-            InlineKeyboardButton(text="ورق 📄", callback_data="paper"),
-            InlineKeyboardButton(text="حجره 🪨", callback_data="rock")
-        ]
-    ])
-
-# 1. الاستعلام المضمن
+# 1. عند كتابة @اسم_البوت في أي محادثة (للبدء)
 @router.inline_query()
 async def inline_game(inline_query: InlineQuery):
     results = [
         InlineQueryResultArticle(
-            id="game_board",
-            title="لعبة حجرة ورقة مقص ✂️",
-            description="اضغط للعب مع صديقك",
+            id="start_vs",
+            title="تحدَّ صديقك في حجرة ورقة مقص! ⚔️",
+            description="اضغط لإرسال دعوة تحدي",
             input_message_content=InputTextMessageContent(
-                message_text="✂️ حجرة ورقة مقص\n👤 اضغط على الزر للعب مع صديقك:"
+                message_text="🎮 **تحدي جديد!**\n\nاضغط على الزر أدناه لبدء المباراة مع صديقك:"
             ),
-            reply_markup=get_game_buttons()
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⚔️ اضغط هنا للعب", callback_data="play_game")]
+            ])
         )
     ]
-    await inline_query.answer(results, cache_time=1, is_personal=False)
+    await inline_query.answer(results, cache_time=1)
 
-# 2. منطق النتيجة المنبثقة
-@router.callback_query(F.data.in_(["rock", "paper", "scissors"]))
-async def callback_handler(callback: CallbackQuery):
-    player_choice = callback.data
-    bot_choice = random.choice(["rock", "paper", "scissors"])
-    
-    # تحديد الفائز
-    if player_choice == bot_choice:
-        result = "تعادل! 🤝"
-    elif (player_choice == "rock" and bot_choice == "scissors") or \
-         (player_choice == "paper" and bot_choice == "rock") or \
-         (player_choice == "scissors" and bot_choice == "paper"):
-        result = "أنت الفائز! 🎉"
-    else:
-        result = "خسرت أمام البوت! 🤖"
+# 2. كيبورد اللعب الفعلي (يظهر بعد الضغط على زر التحدي)
+def get_game_keys():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="مقص ✂️", callback_data="choice_scissors"),
+            InlineKeyboardButton(text="ورق 📄", callback_data="choice_paper"),
+            InlineKeyboardButton(text="حجره 🪨", callback_data="choice_rock")
+        ]
+    ])
 
-    # هذا السطر يظهر النتيجة فوراً في نافذة منبثقة (Alert)
-    await callback.answer(
-        text=f"اختيارك: {player_choice}\nاختيار الخصم: {bot_choice}\n\n{result}",
-        show_alert=True
+# 3. معالجة الضغط على زر التحدي
+@router.callback_query(F.data == "play_game")
+async def start_game(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "تم قبول التحدي! ⚔️\n\nاختر حركتك الآن (أنت وصديقك):",
+        reply_markup=get_game_keys()
     )
+
+# 4. معالجة اختيار الحركة
+@router.callback_query(F.data.startswith("choice_"))
+async def handle_choice(callback: CallbackQuery):
+    choice = callback.data.split("_")[1]
+    await callback.answer(f"تم تسجيل اختيارك: {choice} ✅", show_alert=True)
