@@ -1,37 +1,33 @@
 from aiogram import Router, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from aiogram.filters import Command
+from aiogram.types import InlineQuery, InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 router = Router()
 
-# كيبورد اللعبة
-def get_game_keys():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="مقص ✂️", callback_data="choice_scissors"),
-            InlineKeyboardButton(text="ورق 📄", callback_data="choice_paper"),
-            InlineKeyboardButton(text="حجره 🪨", callback_data="choice_rock")
-        ]
-    ])
+# هذا الكود يجعل البوت يرسل "نتيجة" فقط، بدون رسائل نصية معقدة
+@router.inline_query()
+async def inline_game(inline_query: InlineQuery):
+    # زر شفاف يفتح قائمة البوت عند الضغط عليه
+    results = [
+        InlineQueryResultArticle(
+            id="transparent_game",
+            title="⚔️ تحدي حجرة ورقة مقص",
+            input_message_content=InputTextMessageContent(message_text="🎮 **تحدي جديد!** اضغط للبدء:"),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="مقص ✂️", callback_data="choice_s"),
+                    InlineKeyboardButton(text="ورق 📄", callback_data="choice_p"),
+                    InlineKeyboardButton(text="حجره 🪨", callback_data="choice_r")
+                ]
+            ])
+        )
+    ]
+    await inline_query.answer(results, cache_time=1, is_personal=False)
 
-# 1. ابدأ التحدي بكتابة /play في المجموعة
-@router.message(Command("play"))
-async def start_game(message: Message):
-    # هذه الرسالة يرسلها البوت، لذا يملك صلاحية تعديلها بالكامل!
-    await message.answer(
-        "🎮 **مباراة حجرة ورقة مقص**\n\nاضغط على حركتك للتحدي:",
-        reply_markup=get_game_keys()
-    )
-
-# 2. معالجة الضغط (سيعمل التعديل الآن فوراً وبدون أي أخطاء)
+# هذا الجزء هو المسؤول عن "الشفافية"
 @router.callback_query(F.data.startswith("choice_"))
 async def handle_choice(callback: CallbackQuery):
-    choice = callback.data.split("_")[1]
-    user_name = callback.from_user.first_name
-    
-    # بما أن الرسالة أصلية، هذا السطر سيعمل 100%
-    await callback.message.edit_text(
-        f"✅ تم تسجيل اختيار {user_name}: {choice}\n\n"
-        f"⏳ في انتظار صديقك ليختار حركته..."
+    # بدلاً من تعديل الرسالة (الذي يسبب الدوران)، نستخدم تنبيهاً فقط
+    await callback.answer(
+        text=f"✅ تم تسجيل حركتك: {callback.data.split('_')[1]}\nانتظر نتيجة صديقك!",
+        show_alert=True
     )
-    await callback.answer("تم تسجيل اختيارك!")
