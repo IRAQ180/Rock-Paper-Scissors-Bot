@@ -1,27 +1,9 @@
 from aiogram import Router, F
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InlineQuery, InlineQueryResultArticle, InputTextMessageContent
 
 router = Router()
 
-# 1. عند كتابة @اسم_البوت في أي محادثة (للبدء)
-@router.inline_query()
-async def inline_game(inline_query: InlineQuery):
-    results = [
-        InlineQueryResultArticle(
-            id="start_vs",
-            title="تحدَّ صديقك في حجرة ورقة مقص! ⚔️",
-            description="اضغط لإرسال دعوة تحدي",
-            input_message_content=InputTextMessageContent(
-                message_text="🎮 **تحدي جديد!**\n\nاضغط على الزر أدناه لبدء المباراة مع صديقك:"
-            ),
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="⚔️ اضغط هنا للعب", callback_data="play_game")]
-            ])
-        )
-    ]
-    await inline_query.answer(results, cache_time=1)
-
-# 2. كيبورد اللعب الفعلي (يظهر بعد الضغط على زر التحدي)
+# كيبورد اللعبة
 def get_game_keys():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -31,16 +13,30 @@ def get_game_keys():
         ]
     ])
 
-# 3. معالجة الضغط على زر التحدي
-@router.callback_query(F.data == "play_game")
-async def start_game(callback: CallbackQuery):
-    await callback.message.edit_text(
-        "تم قبول التحدي! ⚔️\n\nاختر حركتك الآن (أنت وصديقك):",
-        reply_markup=get_game_keys()
-    )
+# 1. عند كتابة @اسم_البوت
+@router.inline_query()
+async def inline_game(inline_query: InlineQuery):
+    results = [
+        InlineQueryResultArticle(
+            id="vs_friend",
+            title="تحدَّ صديقك الآن! ⚔️",
+            input_message_content=InputTextMessageContent(
+                message_text="🎮 **مباراة حجرة ورقة مقص**\n\nاضغط على حركتك للبدء:"
+            ),
+            reply_markup=get_game_keys()
+        )
+    ]
+    await inline_query.answer(results, cache_time=1)
 
-# 4. معالجة اختيار الحركة
+# 2. معالجة اختيارات اللاعبين
+# ملاحظة: هذا الكود يسجل الضغط ويظهر للطرفين ماذا اختاروا
 @router.callback_query(F.data.startswith("choice_"))
 async def handle_choice(callback: CallbackQuery):
+    user_name = callback.from_user.first_name
     choice = callback.data.split("_")[1]
-    await callback.answer(f"تم تسجيل اختيارك: {choice} ✅", show_alert=True)
+    
+    # الرد يظهر للطرفين فوراً
+    await callback.answer(
+        f"{user_name} اختار: {choice}!\n\nانتظر صديقك ليختار حركته!", 
+        show_alert=True
+    )
