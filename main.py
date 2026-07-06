@@ -1,24 +1,24 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
+import os
+from aiogram import Bot, Dispatcher
+from handlers import router
 
-# ضع التوكن الخاص بك هنا بين علامات تنصيص مستقيمة
-TOKEN = '8201679973:AAFa6xGpxL7PxXX3s1QbNEXkMjy5Ah6kvcM'
-
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
-
-@dp.message(Command('start'))
-async def cmd_start(message: types.Message):
-    await message.answer('مرحباً! اختر: حجرة، ورقة، أو مقص.')
-
-@dp.message(F.text.in_(['حجرة', 'ورقة', 'مقص']))
-async def game_handler(message: types.Message):
-    user_choice = message.text
-    # هنا تضع منطق اللعبة الخاص بك
-    await message.answer(f'لقد اخترت: {user_choice}')
+# هذا الجزء يقوم بجلب التوكن من الإعدادات (Variables) التي وضعتها في Railway
+TOKEN = os.getenv('TOKEN')
 
 async def main():
+    # التحقق من وجود التوكن
+    if not TOKEN:
+        print("خطأ: لم يتم العثور على TOKEN في إعدادات Railway!")
+        return
+
+    bot = Bot(token=TOKEN)
+    dp = Dispatcher()
+    
+    # ربط المميزات الموجودة في ملف handlers.py
+    dp.include_router(router)
+    
+    print("البوت يعمل الآن...")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
