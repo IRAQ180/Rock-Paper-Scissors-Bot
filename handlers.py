@@ -4,8 +4,8 @@ import random
 
 router = Router()
 
-# 1. كيبورد اللعب الفردي
-def get_game_keyboard():
+# دالة الأزرار للعب المباشر
+def get_game_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🪨 حجرة", callback_data="rock"),
@@ -14,49 +14,42 @@ def get_game_keyboard():
         ]
     ])
 
-# 2. بداية اللعب الفردي
-@router.message(F.text == "/start")
-async def cmd_start(message: Message):
-    await message.answer("أهلاً بك! اختر رمزاً للبدء:", reply_markup=get_game_keyboard())
-
-@router.callback_query(F.data.in_(["rock", "paper", "scissors"]))
-async def game_callback(callback: CallbackQuery):
-    player_choice = callback.data
-    bot_choice = random.choice(["rock", "paper", "scissors"])
-    
-    result = "تعادل 🤝"
-    if (player_choice == "rock" and bot_choice == "scissors") or \
-       (player_choice == "paper" and bot_choice == "rock") or \
-       (player_choice == "scissors" and bot_choice == "paper"):
-        result = "أنت الفائز! 🎉"
-    elif player_choice != bot_choice:
-        result = "البوت هو الفائز! 🤖"
-
-    await callback.message.edit_text(f"أنت: {player_choice}\nالبوت: {bot_choice}\n\nالنتيجة: {result}")
-
-# 3. ميزة تحدي الأصدقاء عبر الاستعلام المضمن
+# 1. الاستعلام المضمن (تظهر عند كتابة @اسم_البوت)
 @router.inline_query()
 async def inline_game(inline_query: InlineQuery):
-    # زر التحدي الذي سيظهر مع كل خيار
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="تحدَّني!", switch_inline_query="")]
-    ])
-    
     results = [
         InlineQueryResultArticle(
-            id="rock", title="حجرة 🪨",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: حجرة 🪨. دورك الآن يا صديقي!"),
-            reply_markup=keyboard
-        ),
-        InlineQueryResultArticle(
-            id="paper", title="ورقة 📄",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: ورقة 📄. دورك الآن يا صديقي!"),
-            reply_markup=keyboard
-        ),
-        InlineQueryResultArticle(
-            id="scissors", title="مقص ✂️",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: مقص ✂️. دورك الآن يا صديقي!"),
-            reply_markup=keyboard
+            id="game",
+            title="لعبة حجرة ورقة مقص 🎮",
+            description="اضغط للعب مع صديقك",
+            input_message_content=InputTextMessageContent(message_text="لعبة جديدة! اختر حركتك الآن:"),
+            reply_markup=get_game_buttons()
         )
     ]
     await inline_query.answer(results, cache_time=1)
+
+# 2. التعامل مع ضغطات الأزرار
+@router.callback_query(F.data.in_(["rock", "paper", "scissors"]))
+async def handle_buttons(callback: CallbackQuery):
+    player_choice = callback.data
+    options = ["rock", "paper", "scissors"]
+    # اختيار عشوائي للخصم (البوت)
+    bot_choice = random.choice(options)
+    
+    # تحديد النتيجة
+    if player_choice == bot_choice:
+        result = "تعادل! 🤝"
+    elif (player_choice == "rock" and bot_choice == "scissors") or \
+         (player_choice == "paper" and bot_choice == "rock") or \
+         (player_choice == "scissors" and bot_choice == "paper"):
+        result = "أنت الفائز! 🎉"
+    else:
+        result = "للأسف، خسرت هذه الجولة! 🤖"
+
+    # تحديث الرسالة بالنتيجة
+    text = (f"النتيجة:\n"
+            f"اختيارك: {player_choice}\n"
+            f"اختيار الخصم: {bot_choice}\n\n"
+            f"{result}")
+    
+    await callback.message.edit_text(text)
