@@ -4,7 +4,7 @@ import random
 
 router = Router()
 
-# دالة الكيبورد للعب الفردي
+# 1. كيبورد اللعب الفردي
 def get_game_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -14,7 +14,7 @@ def get_game_keyboard():
         ]
     ])
 
-# 1. التعامل مع اللعب الفردي عبر الأزرار
+# 2. بداية اللعب الفردي
 @router.message(F.text == "/start")
 async def cmd_start(message: Message):
     await message.answer("أهلاً بك! اختر رمزاً للبدء:", reply_markup=get_game_keyboard())
@@ -34,21 +34,29 @@ async def game_callback(callback: CallbackQuery):
 
     await callback.message.edit_text(f"أنت: {player_choice}\nالبوت: {bot_choice}\n\nالنتيجة: {result}")
 
-# 2. التعامل مع ميزة الاستعلام المضمن (Inline Mode)
+# 3. ميزة تحدي الأصدقاء عبر الاستعلام المضمن
 @router.inline_query()
 async def inline_game(inline_query: InlineQuery):
+    # زر التحدي الذي سيظهر مع كل خيار
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="تحدَّني!", switch_inline_query="")]
+    ])
+    
     results = [
         InlineQueryResultArticle(
             id="rock", title="حجرة 🪨",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: حجرة 🪨")
+            input_message_content=InputTextMessageContent(message_text="لقد اخترت: حجرة 🪨. دورك الآن يا صديقي!"),
+            reply_markup=keyboard
         ),
         InlineQueryResultArticle(
             id="paper", title="ورقة 📄",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: ورقة 📄")
+            input_message_content=InputTextMessageContent(message_text="لقد اخترت: ورقة 📄. دورك الآن يا صديقي!"),
+            reply_markup=keyboard
         ),
         InlineQueryResultArticle(
             id="scissors", title="مقص ✂️",
-            input_message_content=InputTextMessageContent(message_text="لقد اخترت: مقص ✂️")
+            input_message_content=InputTextMessageContent(message_text="لقد اخترت: مقص ✂️. دورك الآن يا صديقي!"),
+            reply_markup=keyboard
         )
     ]
     await inline_query.answer(results, cache_time=1)
